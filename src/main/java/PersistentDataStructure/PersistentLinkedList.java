@@ -10,7 +10,7 @@ import java.util.TreeSet;
 public class PersistentLinkedList<T> {
 
     final Node<T> root;
-    final int branchingFactor;
+    final int numberOfChild;
     final int depth;
     final int base; //BF ^ (depth - 1)
     int treeSize;
@@ -24,9 +24,9 @@ public class PersistentLinkedList<T> {
      * package-private constructor for the persistent linked list
      *
      * @param root a designated/initial vertex in a graph
-     * @param branchingFactor number of children at each node for the underlying structure
+     * @param numberOfChild number of children at each node for the underlying structure
      * @param depth maximum number of edges in the paths from the root to any node
-     * @param base branchingFactor ^ (depth - 1)
+     * @param base numberOfChild ^ (depth - 1)
      * @param treeSize number of leaves in the graph or elements with gaps in the persistent array
      * @param unusedTreeIndices indices of the gaps
      * @param indexCorrespondingToTheFirstElement graph index corresponding to the first element in
@@ -34,11 +34,11 @@ public class PersistentLinkedList<T> {
      * @param indexCorrespondingToTheLatestElement graph index corresponding to the last element in
      * the linked list
      */
-    PersistentLinkedList(Node<T> root, int branchingFactor, int depth, int base, int treeSize,
+    PersistentLinkedList(Node<T> root, int numberOfChild, int depth, int base, int treeSize,
                          SortedSet<Integer> unusedTreeIndices, int indexCorrespondingToTheFirstElement,
                          int indexCorrespondingToTheLatestElement) {
         this.root = root;
-        this.branchingFactor = branchingFactor;
+        this.numberOfChild = numberOfChild;
         this.depth = depth;
         this.base = base;
         this.treeSize = treeSize;
@@ -48,11 +48,11 @@ public class PersistentLinkedList<T> {
         this.latestVersion=null;
         this.futureVersion=null;
     }
-    PersistentLinkedList(Node<T> root, int branchingFactor, int depth, int base,
+    PersistentLinkedList(Node<T> root, int numberOfChild, int depth, int base,
                          int treeSize, SortedSet<Integer> unusedTreeIndices, int indexCorrespondingToTheFirstElement,
                          int indexCorrespondingToTheLatestElement, PersistentLinkedList<T> latestVersion) {
         this.root=root;
-        this.branchingFactor=branchingFactor;
+        this.numberOfChild=numberOfChild;
         this.depth=depth;
         this.base=base;
         this.treeSize=treeSize;
@@ -64,7 +64,7 @@ public class PersistentLinkedList<T> {
     PersistentLinkedList(PersistentLinkedList<T> thisVersion,
                          PersistentLinkedList<T> futureVersion){
         this.root=thisVersion.root;
-        this.branchingFactor=thisVersion.branchingFactor;
+        this.numberOfChild=thisVersion.numberOfChild;
         this.depth=thisVersion.depth;
         this.base=thisVersion.base;
         this.treeSize=thisVersion.treeSize;
@@ -78,17 +78,17 @@ public class PersistentLinkedList<T> {
     /**
      * constructor for the persistent linked list
      *
-     * @param powerOfBranchingFactor the branching factor will be equals to
-     * 2^powerOfBranchingFactor
+     * @param powerOfNumberOfChild the branching factor will be equals to
+     * 2^powerOfNumberOfChild
      */
-    public PersistentLinkedList(int powerOfBranchingFactor) {
-        int branchingFactor = 1;
-        for (int i = 0; i < powerOfBranchingFactor; i++) {
-            branchingFactor *= 2;
+    public PersistentLinkedList(int powerOfNumberOfChild) {
+        int numberOfChild = 1;
+        for (int i = 0; i < powerOfNumberOfChild; i++) {
+            numberOfChild *= 2;
         }
 
-        this.branchingFactor = branchingFactor;
-        this.root = new Node<>(branchingFactor);
+        this.numberOfChild = numberOfChild;
+        this.root = new Node<>(numberOfChild);
         this.depth = 1;
         this.base = 1;
         this.treeSize = 0;
@@ -148,8 +148,8 @@ public class PersistentLinkedList<T> {
         Node<T> currentNewNode = data.currentNewNode;
         int nextBranch = data.index / data.base;
 
-        currentNewNode.set(nextBranch, new Node<>(branchingFactor));
-        for (int anotherBranch = 0; anotherBranch < branchingFactor; anotherBranch++) {
+        currentNewNode.set(nextBranch, new Node<>(numberOfChild));
+        for (int anotherBranch = 0; anotherBranch < numberOfChild; anotherBranch++) {
             if (anotherBranch == nextBranch) {
                 continue;
             }
@@ -171,11 +171,11 @@ public class PersistentLinkedList<T> {
      * @return metadata of traversing
      */
     private TraverseData traverse(int treeIndex) {
-        Node<T> newRoot = new Node<>(branchingFactor);
+        Node<T> newRoot = new Node<>(numberOfChild);
         Node<T> currentNode = this.root;
         Node<T> currentNewNode = newRoot;
 
-        for (int b = base; b > 1; b = b / branchingFactor) {
+        for (int b = base; b > 1; b = b / numberOfChild) {
             TraverseData data = traverseOneLevel(
                     new TraverseData(currentNode, currentNewNode, newRoot, treeIndex, b));
             currentNode = data.currentNode;
@@ -211,7 +211,7 @@ public class PersistentLinkedList<T> {
     private Node<T> getHelper(int treeIndex) {
         Node<T> currentNode = this.root;
 
-        for (int b = base; b > 1; b = b / branchingFactor) {
+        for (int b = base; b > 1; b = b / numberOfChild) {
             int nextBranch = treeIndex / b;
 
             //down
@@ -258,20 +258,20 @@ public class PersistentLinkedList<T> {
      */
     private PersistentLinkedList<T> addHelper(T data) {
         //there's still space in the latest element
-        if (this.treeSize == 0 || this.treeSize % branchingFactor != 0) {
+        if (this.treeSize == 0 || this.treeSize % numberOfChild != 0) {
             return setHelper(this.treeSize, data);
         }
 
         //there's still space for the new data
-        if (this.base * branchingFactor > this.treeSize) {
-            Node<T> newRoot = new Node<>(branchingFactor);
+        if (this.base * numberOfChild > this.treeSize) {
+            Node<T> newRoot = new Node<>(numberOfChild);
 
             Node<T> currentNode = this.root;
             Node<T> currentNewNode = newRoot;
 
             int index = this.treeSize;
             int b;
-            for (b = base; b > 0; b = b / branchingFactor) {
+            for (b = base; b > 0; b = b / numberOfChild) {
                 TraverseData traverseData = traverseOneLevel(
                         new TraverseData(currentNode, currentNewNode, newRoot, index, b));
                 currentNode = traverseData.currentNode;
@@ -279,41 +279,41 @@ public class PersistentLinkedList<T> {
                 index = traverseData.index;
 
                 if (currentNode == null) {
-                    b = b / branchingFactor;
+                    b = b / numberOfChild;
                     break;
                 }
             }
 
             while (b > 1) {
-                currentNewNode.set(0, new Node<>(branchingFactor));
+                currentNewNode.set(0, new Node<>(numberOfChild));
                 currentNewNode = currentNewNode.get(0);
                 index = index % b;
-                b = b / branchingFactor;
+                b = b / numberOfChild;
             }
-            currentNewNode.set(0, new Node<>(branchingFactor, data));
+            currentNewNode.set(0, new Node<>(numberOfChild, data));
 
-            return new PersistentLinkedList<>(newRoot, this.branchingFactor, this.depth, this.base,
+            return new PersistentLinkedList<>(newRoot, this.numberOfChild, this.depth, this.base,
                     this.treeSize + 1, unusedTreeIndices, indexCorrespondingToTheFirstElement,
                     indexCorrespondingToTheLatestElement);
         }
 
         //root overflow
-        Node<T> newRoot = new Node<>(branchingFactor);
+        Node<T> newRoot = new Node<>(numberOfChild);
         newRoot.set(0, this.root);
-        newRoot.set(1, new Node<>(branchingFactor));
+        newRoot.set(1, new Node<>(numberOfChild));
         //newRoot[2..]=null
         Node<T> currentNewNode = newRoot.get(1);
 
         int b = base;
         while (b > 1) {
-            currentNewNode.set(0, new Node<>(branchingFactor));
+            currentNewNode.set(0, new Node<>(numberOfChild));
             currentNewNode = currentNewNode.get(0);
-            b = b / branchingFactor;
+            b = b / numberOfChild;
         }
-        currentNewNode.set(0, new Node<>(branchingFactor, data));
+        currentNewNode.set(0, new Node<>(numberOfChild, data));
 
-        return new PersistentLinkedList<>(newRoot, this.branchingFactor, this.depth + 1,
-                this.base * branchingFactor, this.treeSize + 1, unusedTreeIndices,
+        return new PersistentLinkedList<>(newRoot, this.numberOfChild, this.depth + 1,
+                this.base * numberOfChild, this.treeSize + 1, unusedTreeIndices,
                 indexCorrespondingToTheFirstElement, indexCorrespondingToTheLatestElement);
     }
 
@@ -332,15 +332,15 @@ public class PersistentLinkedList<T> {
 
         TraverseData traverseData = traverse(treeIndex);
 
-        traverseData.currentNewNode.set(traverseData.index, new Node<>(branchingFactor, data));
-        for (int i = 0; i < branchingFactor; i++) {
+        traverseData.currentNewNode.set(traverseData.index, new Node<>(numberOfChild, data));
+        for (int i = 0; i < numberOfChild; i++) {
             if (i == traverseData.index) {
                 continue;
             }
             traverseData.currentNewNode.set(i, traverseData.currentNode.get(i));
         }
 
-        return new PersistentLinkedList<>(traverseData.newRoot, branchingFactor, depth, base,
+        return new PersistentLinkedList<>(traverseData.newRoot, numberOfChild, depth, base,
                 newSize, unusedTreeIndices, indexCorrespondingToTheFirstElement,
                 indexCorrespondingToTheLatestElement);
     }
@@ -394,7 +394,7 @@ public class PersistentLinkedList<T> {
             newVersion.indexCorrespondingToTheLatestElement = newElementTreeIndex;
         }
 
-        return new PersistentLinkedList<>(newVersion.root,newVersion.branchingFactor,newVersion.depth,newVersion.base,
+        return new PersistentLinkedList<>(newVersion.root,newVersion.numberOfChild,newVersion.depth,newVersion.base,
                 newVersion.treeSize,newVersion.unusedTreeIndices,newVersion.indexCorrespondingToTheFirstElement,
                 newVersion.indexCorrespondingToTheLatestElement,this);
     }
@@ -407,7 +407,7 @@ public class PersistentLinkedList<T> {
      */
     public PersistentLinkedList<T> addFirst(T data) {
         PersistentLinkedList newVersion = add(0, data);
-        return new PersistentLinkedList<>(newVersion.root,newVersion.branchingFactor,newVersion.depth,newVersion.base,
+        return new PersistentLinkedList<>(newVersion.root,newVersion.numberOfChild,newVersion.depth,newVersion.base,
                 newVersion.treeSize,newVersion.unusedTreeIndices,newVersion.indexCorrespondingToTheFirstElement,
                 newVersion.indexCorrespondingToTheLatestElement,this);
     }
@@ -420,7 +420,7 @@ public class PersistentLinkedList<T> {
      */
     public PersistentLinkedList<T> addLast(T data) {
         PersistentLinkedList newVersion = add(this.treeSize, data);
-        return new PersistentLinkedList<>(newVersion.root,newVersion.branchingFactor,newVersion.depth,newVersion.base,
+        return new PersistentLinkedList<>(newVersion.root,newVersion.numberOfChild,newVersion.depth,newVersion.base,
                 newVersion.treeSize,newVersion.unusedTreeIndices,newVersion.indexCorrespondingToTheFirstElement,
                 newVersion.indexCorrespondingToTheLatestElement,this);
     }
@@ -496,7 +496,7 @@ public class PersistentLinkedList<T> {
         int finalIndex = traverseData.index;
         traverseData.currentNewNode
                 .set(finalIndex,
-                        new Node<>(branchingFactor, traverseData.currentNode.get(finalIndex).data));
+                        new Node<>(numberOfChild, traverseData.currentNode.get(finalIndex).data));
         if (setPreviousIndex) {
             traverseData.currentNewNode.get(finalIndex).previousIndex = data; //new
             traverseData.currentNewNode.get(finalIndex).nextIndex = traverseData.currentNode
@@ -507,14 +507,14 @@ public class PersistentLinkedList<T> {
                     .get(finalIndex).previousIndex; //old
         }
 
-        for (int i = 0; i < branchingFactor; i++) {
+        for (int i = 0; i < numberOfChild; i++) {
             if (i == finalIndex) {
                 continue;
             }
             traverseData.currentNewNode.set(i, traverseData.currentNode.get(i));
         }
 
-        return new PersistentLinkedList<>(traverseData.newRoot, branchingFactor, depth, base,
+        return new PersistentLinkedList<>(traverseData.newRoot, numberOfChild, depth, base,
                 treeSize, unusedTreeIndices, indexCorrespondingToTheFirstElement,
                 indexCorrespondingToTheLatestElement);
     }
@@ -560,14 +560,16 @@ public class PersistentLinkedList<T> {
             } else {
                 newVersion.treeSize--;
             }
-            return new PersistentLinkedList<>(newVersion.root,newVersion.branchingFactor,newVersion.depth,newVersion.base,
+            return new PersistentLinkedList<>(newVersion.root,newVersion.numberOfChild,newVersion.depth,newVersion.base,
                     newVersion.treeSize,newVersion.unusedTreeIndices,newVersion.indexCorrespondingToTheFirstElement,
                     newVersion.indexCorrespondingToTheLatestElement,this);
         } //else
 
         PersistentLinkedList<T> newVersion2 = newVersion.setHelper(treeIndex, null);
         newVersion2.changeUnusedIndices(treeIndex, false);
-        return newVersion2;
+        return new PersistentLinkedList<>(newVersion2.root,newVersion2.numberOfChild,newVersion2.depth,newVersion2.base,
+                newVersion2.treeSize,newVersion2.unusedTreeIndices,newVersion2.indexCorrespondingToTheFirstElement,
+                newVersion2.indexCorrespondingToTheLatestElement,this);
     }
 
     /**
@@ -577,7 +579,7 @@ public class PersistentLinkedList<T> {
      */
     public PersistentLinkedList<T> removeFirst() {
         PersistentLinkedList newVersion = remove(0);
-        return new PersistentLinkedList<>(newVersion.root,newVersion.branchingFactor,newVersion.depth,newVersion.base,
+        return new PersistentLinkedList<>(newVersion.root,newVersion.numberOfChild,newVersion.depth,newVersion.base,
                 newVersion.treeSize,newVersion.unusedTreeIndices,newVersion.indexCorrespondingToTheFirstElement,
                 newVersion.indexCorrespondingToTheLatestElement,this);
     }
@@ -589,7 +591,7 @@ public class PersistentLinkedList<T> {
      */
     public PersistentLinkedList<T> removeLast() {
         PersistentLinkedList newVersion = remove(this.treeSize - 1);
-        return new PersistentLinkedList<>(newVersion.root,newVersion.branchingFactor,newVersion.depth,newVersion.base,
+        return new PersistentLinkedList<>(newVersion.root,newVersion.numberOfChild,newVersion.depth,newVersion.base,
                 newVersion.treeSize,newVersion.unusedTreeIndices,newVersion.indexCorrespondingToTheFirstElement,
                 newVersion.indexCorrespondingToTheLatestElement,this);
     }
@@ -602,7 +604,7 @@ public class PersistentLinkedList<T> {
     private PersistentLinkedList<T> pop() {
         //the latest element won't become empty
         int index = this.treeSize - 1;
-        Node<T> newRoot = new Node<>(branchingFactor);
+        Node<T> newRoot = new Node<>(numberOfChild);
 
         Node<T> currentNode = this.root;
         Node<T> currentNewNode = newRoot;
@@ -611,7 +613,7 @@ public class PersistentLinkedList<T> {
         newNodes.add(newRoot);
         ArrayList<Integer> newNodesIndices = new ArrayList<>();
 
-        for (int b = base; b > 1; b = b / branchingFactor) {
+        for (int b = base; b > 1; b = b / numberOfChild) {
             TraverseData traverseData = traverseOneLevel(
                     new TraverseData(currentNode, currentNewNode, newRoot, index, b));
             currentNode = traverseData.currentNode;
@@ -622,7 +624,7 @@ public class PersistentLinkedList<T> {
         }
         newNodesIndices.add(index);
 
-        for (int i = 0; i < branchingFactor && i < index; i++) {
+        for (int i = 0; i < numberOfChild && i < index; i++) {
             currentNewNode.set(i, currentNode.get(i));
         }
         currentNewNode.set(index, null);
@@ -649,12 +651,12 @@ public class PersistentLinkedList<T> {
             }
             if (nonNullChildren == 1) { //need new root
                 newRoot = newRoot.get(0);
-                return new PersistentLinkedList<>(newRoot, this.branchingFactor, this.depth - 1,
-                        this.base / branchingFactor, this.treeSize - 1, unusedTreeIndices,
+                return new PersistentLinkedList<>(newRoot, this.numberOfChild, this.depth - 1,
+                        this.base / numberOfChild, this.treeSize - 1, unusedTreeIndices,
                         indexCorrespondingToTheFirstElement, indexCorrespondingToTheLatestElement);
             }
         }
-        return new PersistentLinkedList<>(newRoot, this.branchingFactor, this.depth, this.base,
+        return new PersistentLinkedList<>(newRoot, this.numberOfChild, this.depth, this.base,
                 this.treeSize - 1, unusedTreeIndices, indexCorrespondingToTheFirstElement,
                 indexCorrespondingToTheLatestElement,this);
     }
@@ -665,10 +667,10 @@ public class PersistentLinkedList<T> {
      *
      * @return PersistentArray
      */
-    /*public PersistentArray toPersistentArray() {
-        return new PersistentArray<>(this.root, this.branchingFactor, this.depth, this.base,
-            this.treeSize);
-    }*/
+    public PersistentArray<T> toPersistentArray() {
+        return new PersistentArray<>(this.root, this.numberOfChild, this.depth, this.base,
+            this.treeSize,null);
+    }
 
 
     /**
@@ -787,7 +789,7 @@ public class PersistentLinkedList<T> {
         }
 
         StringBuilder outString = new StringBuilder();
-        for (int i = 0; i < branchingFactor; i++) {
+        for (int i = 0; i < numberOfChild; i++) {
             if (node.get(i) == null) {
                 outString.append("_");
                 //break;
@@ -800,7 +802,7 @@ public class PersistentLinkedList<T> {
                 }
             }
 
-            if (i + 1 != branchingFactor) {
+            if (i + 1 != numberOfChild) {
                 outString.append(", ");
             }
         }

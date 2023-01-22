@@ -16,6 +16,7 @@ public class PersistentArrayTest {
     public void add() {
         PersistentArray<Integer> init = new PersistentArray<>(1);
         PersistentArray<Integer> a = init.add(0);
+        System.out.println(a.toString());
         PersistentArray<Integer> b = a.add(1);
         PersistentArray<Integer> c = b.add(2);
         PersistentArray<Integer> d = c.add(3);

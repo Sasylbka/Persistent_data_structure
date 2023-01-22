@@ -2,8 +2,10 @@ package PersistentDataStructure;
 import TreeStructure.NodeMap;
 public class PersistentTreeMap<K, V> {
 
+    private final PersistentTreeMap<K,V> latestVersion;
+    private PersistentTreeMap<K,V> futureVersion;
     final NodeMap<K, V> root;
-    final int branchingFactor;
+    final int numberOfChild;
     final int depth;
     final int base; //BF ^ (depth - 1)
     final int size;
@@ -12,35 +14,50 @@ public class PersistentTreeMap<K, V> {
      * package-private constructor for the persistent array
      *
      * @param root a designated/initial vertex in a graph
-     * @param branchingFactor number of children at each node
+     * @param numberOfChild number of children at each node
      * @param depth maximum number of edges in the paths from the root to any node
-     * @param base branchingFactor ^ (depth - 1)
+     * @param base numberOfChild ^ (depth - 1)
      * @param size number of leaves in the graph or elements in the persistent tree map
      */
-    PersistentTreeMap(NodeMap<K, V> root, int branchingFactor, int depth, int base, int size) {
+
+
+    PersistentTreeMap(NodeMap<K, V> root, int numberOfChild, int depth, int base, int size,PersistentTreeMap<K,V> latestVersion) {
         this.root = root;
-        this.branchingFactor = branchingFactor;
+        this.numberOfChild = numberOfChild;
         this.depth = depth;
         this.base = base;
         this.size = size;
+        this.latestVersion=latestVersion;
+    }
+
+    PersistentTreeMap(PersistentTreeMap<K,V> thisVersion,PersistentTreeMap<K,V> futureVersion) {
+        this.root = thisVersion.root;
+        this.numberOfChild = thisVersion.numberOfChild;
+        this.depth = thisVersion.depth;
+        this.base = thisVersion.base;
+        this.size = thisVersion.size;
+        this.latestVersion=thisVersion.latestVersion;
+        this.futureVersion=futureVersion;
     }
 
     /**
      * constructor for the persistent tree map
      *
-     * @param powerOfBranchingFactor the branching factor will be equals to
-     * 2^powerOfBranchingFactor
+     * @param powerOfNumberOfChild the branching factor will be equals to
+     * 2^powerOfNumberOfChild
      */
-    public PersistentTreeMap(int powerOfBranchingFactor) {
-        int branchingFactor = 1;
-        for (int i = 0; i < powerOfBranchingFactor; i++) {
-            branchingFactor *= 2;
+    public PersistentTreeMap(int powerOfNumberOfChild) {
+        int numberOfChild = 1;
+        for (int i = 0; i < powerOfNumberOfChild; i++) {
+            numberOfChild *= 2;
         }
-        this.branchingFactor = branchingFactor;
-        this.root = new NodeMap<K, V>(branchingFactor);
+        this.numberOfChild = numberOfChild;
+        this.root = new NodeMap<K, V>(numberOfChild);
         this.depth = 5;
-        this.base = (int) Math.pow(branchingFactor, depth - 1);
+        this.base = (int) Math.pow(numberOfChild, depth - 1);
         this.size = 0;
+        this.latestVersion=this;
+        this.futureVersion=null;
     }
 
     private class TraverseData {
@@ -75,10 +92,10 @@ public class PersistentTreeMap<K, V> {
         NodeMap<K, V> currentNewNode = data.currentNewNode;
         int nextBranch = data.index / data.base;
 
-        currentNewNode.set(nextBranch, new NodeMap<K, V>(branchingFactor));
+        currentNewNode.set(nextBranch, new NodeMap<K, V>(numberOfChild));
         if (currentNode != null) {
 
-            for (int anotherBranch = 0; anotherBranch < branchingFactor; anotherBranch++) {
+            for (int anotherBranch = 0; anotherBranch < numberOfChild; anotherBranch++) {
                 if (anotherBranch == nextBranch) {
                     continue;
                 }
@@ -98,11 +115,11 @@ public class PersistentTreeMap<K, V> {
      * @return metadata of traversing
      */
     private TraverseData traverse(int index) {
-        NodeMap<K, V> newRoot = new NodeMap<K, V>(branchingFactor);
+        NodeMap<K, V> newRoot = new NodeMap<K, V>(numberOfChild);
         NodeMap<K, V> currentNode = this.root;
         NodeMap<K, V> currentNewNode = newRoot;
 
-        for (int b = base; b > 1; b = b / branchingFactor) {
+        for (int b = base; b > 1; b = b / numberOfChild) {
             TraverseData data = traverseOneLevel(
                     new TraverseData(currentNode, currentNewNode, newRoot, index, b));
             currentNode = data.currentNode;
@@ -151,7 +168,7 @@ public class PersistentTreeMap<K, V> {
             node = new NodeMap<K, V>(null, key, value);
         }
         traverseData.currentNewNode.set(traverseData.index, node);
-        for (int i = 0; i < branchingFactor; i++) {
+        for (int i = 0; i < numberOfChild; i++) {
             if (i == traverseData.index) {
                 continue;
             }
@@ -162,8 +179,8 @@ public class PersistentTreeMap<K, V> {
             }
         }
 
-        return new PersistentTreeMap<>(traverseData.newRoot, this.branchingFactor, this.depth,
-                this.base, this.size + 1);
+        return new PersistentTreeMap<>(traverseData.newRoot, this.numberOfChild, this.depth,
+                this.base, this.size + 1,this);
     }
 
     /**
@@ -178,7 +195,7 @@ public class PersistentTreeMap<K, V> {
     private NodeMap<K, V> getHelper(K key) {
         NodeMap<K, V> currentNode = this.root;
         int index = getHash(key);
-        for (int b = base; b > 1; b = b / branchingFactor) {
+        for (int b = base; b > 1; b = b / numberOfChild) {
             int nextBranch = index / b;
 
             //down
@@ -201,7 +218,7 @@ public class PersistentTreeMap<K, V> {
     }
 
     private int getHash(K key) {
-        return Math.abs(key.hashCode()) % (this.base * this.branchingFactor);
+        return Math.abs(key.hashCode()) % (this.base * this.numberOfChild);
     }
 
     /**
@@ -221,7 +238,7 @@ public class PersistentTreeMap<K, V> {
         }
 
         StringBuilder outString = new StringBuilder();
-        for (int i = 0; i < branchingFactor; i++) {
+        for (int i = 0; i < numberOfChild; i++) {
             if (node.get(i) == null) {
                 outString.append("_");
                 //break;
@@ -234,11 +251,21 @@ public class PersistentTreeMap<K, V> {
                 }
             }
 
-            if (i + 1 != branchingFactor) {
+            if (i + 1 != numberOfChild) {
                 outString.append(", ");
             }
         }
         return "(" + outString + ")";
+    }
+
+    public PersistentTreeMap<K,V> undo() {
+        if (latestVersion == null) {
+            return null;
+        }
+        return new PersistentTreeMap<K,V>(latestVersion, this);
+    }
+    public PersistentTreeMap<K,V> redo() {
+        return futureVersion;
     }
 
     @Override
