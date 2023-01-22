@@ -125,7 +125,7 @@ public class PersistentArrayTest {
     }
 
     @Test
-    public void UndoTest(){
+    public void redoTest(){
         PersistentArray<String> v0 = new PersistentArray<>(2);
         PersistentArray<String> v1 = v0.add("a");
         PersistentArray<String> v2 = v1.add("b");

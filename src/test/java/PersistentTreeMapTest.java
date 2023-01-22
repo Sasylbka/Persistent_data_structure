@@ -118,4 +118,26 @@ public class PersistentTreeMapTest {
         assertFalse(aa.containsKey(key6));
         assertFalse(aa.containsKey(key9));
     }
+    @Test
+    public void undoTest(){
+        Integer key1 = 9999998;
+        PersistentTreeMap<Integer, String> a = new PersistentTreeMap<>(1);
+        PersistentTreeMap<Integer, String> b = a.put(key1, "hmm");
+        PersistentTreeMap<Integer, String> bb = b.remove(key1);
+        assertFalse(b.undo().containsKey(key1));
+        assertTrue(bb.undo().containsKey(key1));
+    }
+
+
+    @Test
+    public void redoTest(){
+        Integer key1 = 9999998;
+        PersistentTreeMap<Integer, String> a = new PersistentTreeMap<>(1);
+        PersistentTreeMap<Integer, String> b = a.put(key1, "hmm");
+        PersistentTreeMap<Integer, String> bb = b.remove(key1);
+        PersistentTreeMap<Integer,String> redo1=b.undo().redo();
+        PersistentTreeMap<Integer,String> redo2=bb.undo().redo();
+        assertEquals(redo1,b);
+        assertEquals(redo2,bb);
+    }
 }
